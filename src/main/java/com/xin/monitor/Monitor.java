@@ -17,15 +17,18 @@ public class Monitor {
         if (stack.get() == null) {
             stack.set(new Stack<>());
         }
-        stack.get().push(System.currentTimeMillis() + "&$##$&" + Thread.currentThread().getStackTrace().length);
+        stack.get().push(System.currentTimeMillis() + "###" + Thread.currentThread().getStackTrace().length);
     }
 
     public static void end(String paramClassNames) {
         String pop = stack.get().pop();
-        while (Integer.valueOf(pop.split("&$##$&")[1]) > Thread.currentThread().getStackTrace().length) {
+        System.out.println("pop" + pop);
+        String[] popSplit = pop.split("###");
+        while (Integer.valueOf(popSplit[1]) > Thread.currentThread().getStackTrace().length) {
             pop = stack.get().pop();
+            popSplit = pop.split("###");
         }
-        long runTime = System.currentTimeMillis() - Long.valueOf(pop.split("&$##$&")[0]);
+        long runTime = System.currentTimeMillis() - Long.valueOf(popSplit[0]);
         System.out.println(Thread.currentThread().getStackTrace()[2].toString() + "花费的时间:" + runTime);
         TreeVo vo = new TreeVo();
         vo.setClassName(Thread.currentThread().getStackTrace()[2].getClassName());
