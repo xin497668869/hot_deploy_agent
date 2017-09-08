@@ -215,7 +215,8 @@ public class BootClass {
         dbDetailInfoVo.setDbName(info.getProperty("DBNAME"));
     }
 
-    public static ThreadLocal<List<String>> sqlList = new ThreadLocal<>();
+    public static ThreadLocal<List<String>>        sqlList    = new ThreadLocal<>();
+    public static ThreadLocal<StackTraceElement[]> stackTrace = new ThreadLocal<>();
 
     public static void logSql(Object buffer, Object preparedStatement) {
         if (sqlList.get() == null) {
@@ -230,6 +231,9 @@ public class BootClass {
             int bufferPosition = (int) getPosition.invoke(buffer);
             String sql = new String(bufferContent, 5, bufferPosition - 5);
             sqlList.get().add(sql);
+            if (stackTrace.get() == null) {
+                stackTrace.set(Thread.currentThread().getStackTrace());
+            }
             System.out.println("打印的 " + sql);
 
         } catch (Exception e) {
