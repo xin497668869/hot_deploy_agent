@@ -11,6 +11,11 @@ import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.core.io.support.ResourcePatternResolver;
+import org.springframework.core.type.classreading.CachingMetadataReaderFactory;
+import org.springframework.util.ClassUtils;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -104,12 +109,21 @@ public class BootClass {
     }
 
     private static void adddMethodMonitor(ClassLoader classLoader) throws IOException {
-        String path = "com.gaoxiang.performance.injection.StatDataServiceImpl";
-        //todo  获取指定范围内所有的文件路径
-        ClassReader cr = new ClassReader(path);
-        ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_MAXS);
-        ClassVisitor cv = new MethodAddMonitorClassAdapter.AddMonitorClassAdapter(cw);
-        cr.accept(cv, Opcodes.ASM6);
+        String pattern = ResourcePatternResolver.CLASSPATH_ALL_URL_PREFIX +
+                ClassUtils.convertClassNameToResourcePath("com.seewo") + "/**/*.class";
+        //扫描path目录上面所有符合条件的类
+        PathMatchingResourcePatternResolver pathMatchingResourcePatternResolver = new PathMatchingResourcePatternResolver();
+        CachingMetadataReaderFactory cachingMetadataReaderFactory = new CachingMetadataReaderFactory(pathMatchingResourcePatternResolver);
+        /*ClassPool pool = ClassPool.getDefault();
+        pool.insertClassPath(new ClassClassPath(MakeBaseEnumConverter.class));*/
+
+        Resource[] resources = pathMatchingResourcePatternResolver.getResources(pattern);
+
+            ClassReader cr = new ClassReader(pattern);
+            ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_MAXS);
+            ClassVisitor cv = new MethodAddMonitorClassAdapter.AddMonitorClassAdapter(cw);
+            cr.accept(cv, Opcodes.ASM6);
+
     }
 
     private static void mySqlChangeClassChange(ClassLoader classLoader) throws ClassNotFoundException, UnmodifiableClassException, IOException {
