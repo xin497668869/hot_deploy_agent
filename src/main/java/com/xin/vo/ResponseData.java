@@ -8,8 +8,9 @@ import java.util.List;
  * @description
  */
 public class ResponseData {
-    private DbDetailInfoVo dbDetailInfoVo;
-    private List<String>   sql;
+    private DbDetailInfoVo      dbDetailInfoVo;
+    private List<String>        sql;
+    private StackTraceElement[] stackTraceElement;
 
     public DbDetailInfoVo getDbDetailInfoVo() {
         return dbDetailInfoVo;
@@ -25,6 +26,14 @@ public class ResponseData {
 
     public void setSql(List<String> sql) {
         this.sql = sql;
+    }
+
+    public StackTraceElement[] getStackTraceElement() {
+        return stackTraceElement;
+    }
+
+    public void setStackTraceElement(StackTraceElement[] stackTraceElement) {
+        this.stackTraceElement = stackTraceElement;
     }
 
     @Override

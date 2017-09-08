@@ -17,13 +17,17 @@ import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static com.xin.BootClass.dbDetailInfoVo;
 import static com.xin.BootClass.sqlList;
+import static com.xin.BootClass.stackTrace;
 
 /**
  * @author linxixin@cvte.com
@@ -112,6 +116,29 @@ public class Test implements ApplicationContextAware {
                 }
                 responseData.setSql(sql);
                 sqlList.remove();
+
+                StackTraceElement[] stackTraceElements = stackTrace.get();
+                if (stackTraceElements != null) {
+                    for (StackTraceElement stackTraceElement : stackTraceElements) {
+                        System.out.println(stackTraceElement);
+                    }
+                    System.out.println("!!!!!!!!!!!!!!!!!!!");
+                    Predicate<StackTraceElement> stackTraceElementPredicate = stackTraceElement ->
+                            !stackTraceElement.getClassName().startsWith("java.")
+                                    && !stackTraceElement.getClassName().startsWith("sun.")
+                                    && !stackTraceElement.getClassName().startsWith("org.hibernate")
+                                    && !stackTraceElement.getClassName().startsWith("com.xin")
+                                    && !stackTraceElement.getClassName().startsWith("com.mysql")
+                                    && !stackTraceElement.getClassName().startsWith("com.alibaba")
+                                    && !stackTraceElement.getClassName().startsWith("org.springframework");
+                    List<StackTraceElement> traceElementsList = Arrays.stream(stackTraceElements).filter(stackTraceElementPredicate).collect(Collectors.toList());
+                    responseData.setStackTraceElement(traceElementsList.toArray(new StackTraceElement[traceElementsList.size()]));
+                    for (StackTraceElement stackTraceElement : traceElementsList) {
+                        System.out.println(stackTraceElement);
+                    }
+                    System.out.println("==============");
+                    stackTrace.remove();
+                }
                 return responseData;
             }
         }

@@ -11,11 +11,6 @@ import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
-import org.springframework.core.io.support.ResourcePatternResolver;
-import org.springframework.core.type.classreading.CachingMetadataReaderFactory;
-import org.springframework.util.ClassUtils;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -25,20 +20,28 @@ import java.lang.instrument.UnmodifiableClassException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URLClassLoader;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 public class BootClass {
     public static Instrumentation inst;
-    public static Integer port = -1;
+    public static Integer port      = -1;
+    public static String  classPath = "";
     public static DbDetailInfoVo dbDetailInfoVo;
 
     public static void premain(String agentArgs, Instrumentation instrumentation) throws Exception {
-//        System.out.println("插件参数为:" + agentArgs);
+        System.out.println("插件参数为:" + agentArgs);
         inst = instrumentation;
         try {
-            port = Integer.valueOf(agentArgs);
+            String[] params = agentArgs.split(";;;");
+            if (params.length > 1) {
+                classPath = params[1];
+            }
+            System.out.println(Arrays.stream(params).collect(Collectors.toList()));
+            port = Integer.valueOf(params[0]);
         } catch (Exception e) {
             e.printStackTrace();
             throw new Exception("热部署插件参数 必须是整数" + " 当前: " + agentArgs);
@@ -108,21 +111,24 @@ public class BootClass {
 
     }
 
-    private static void adddMethodMonitor(ClassLoader classLoader) throws IOException {
-        String pattern = ResourcePatternResolver.CLASSPATH_ALL_URL_PREFIX +
-                ClassUtils.convertClassNameToResourcePath("com.seewo") + "/**/*.class";
+    private static void adddMethodMonitor(ClassLoader classLoader) throws IOException, ClassNotFoundException, UnmodifiableClassException {
+        String pattern = CLASSPATH_ALL_URL_PREFIX + convertClassNameToResourcePath(classPath) + "/**/*.class";
         //扫描path目录上面所有符合条件的类
         PathMatchingResourcePatternResolver pathMatchingResourcePatternResolver = new PathMatchingResourcePatternResolver();
-        CachingMetadataReaderFactory cachingMetadataReaderFactory = new CachingMetadataReaderFactory(pathMatchingResourcePatternResolver);
-        /*ClassPool pool = ClassPool.getDefault();
-        pool.insertClassPath(new ClassClassPath(MakeBaseEnumConverter.class));*/
-
         Resource[] resources = pathMatchingResourcePatternResolver.getResources(pattern);
+        for (Resource resource : resources) {
+            ClassReader cr = new ClassReader(resource.getInputStream());
 
-            ClassReader cr = new ClassReader(pattern);
             ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_MAXS);
             ClassVisitor cv = new MethodAddMonitorClassAdapter.AddMonitorClassAdapter(cw);
             cr.accept(cv, Opcodes.ASM6);
+            String className = cr.getClassName().replace("/", ".");
+            Class<?> theClass = classLoader.loadClass(className);
+            ClassDefinition classDefinition = new ClassDefinition(theClass, cw.toByteArray());
+            inst.redefineClasses(classDefinition);
+        }
+        System.out.println("monitor 替换类完毕");
+        //todo  获取指定范围内所有的文件路径
 
     }
 
@@ -217,6 +223,7 @@ public class BootClass {
      * @param classLoader
      * @throws Exception
      */
+
     public static void webappLoaderClassChange(ClassLoader classLoader) throws Exception {
         try {
             String className = "org.apache.catalina.loader.WebappLoader";
@@ -247,7 +254,8 @@ public class BootClass {
         dbDetailInfoVo.setDbName(info.getProperty("DBNAME"));
     }
 
-    public static ThreadLocal<List<String>> sqlList = new ThreadLocal<>();
+    public static ThreadLocal<List<String>>        sqlList    = new ThreadLocal<>();
+    public static ThreadLocal<StackTraceElement[]> stackTrace = new ThreadLocal<>();
 
     public static void logSql(Object buffer, Object preparedStatement) {
         if (sqlList.get() == null) {
@@ -262,6 +270,9 @@ public class BootClass {
             int bufferPosition = (int) getPosition.invoke(buffer);
             String sql = new String(bufferContent, 5, bufferPosition - 5);
             sqlList.get().add(sql);
+            if (stackTrace.get() == null) {
+                stackTrace.set(Thread.currentThread().getStackTrace());
+            }
             System.out.println("打印的 " + sql);
 
         } catch (Exception e) {
