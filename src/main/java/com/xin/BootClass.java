@@ -5,7 +5,12 @@ import com.xin.change.ComponentScanAnnotationParserChangeClass;
 import com.xin.change.MySqlChangeClass;
 import com.xin.change.MySqlConfigChangeClass;
 import com.xin.change.WebappLoaderChangeClass;
+import com.xin.monitor.MethodAddMonitorClassAdapter;
 import com.xin.vo.DbDetailInfoVo;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -74,23 +79,37 @@ public class BootClass {
 
         System.out.println("准备替换功能模块");
         try {
-            mySqlChangeClassChange(ClassLoader.getSystemClassLoader());
+            mySqlChangeClassChange(classLoader);
         } catch (Exception e) {
             System.err.println("mysql 的PreparedStatement替换失败");
         }
         try {
-            componentScanAnnotationParserChangeClass(ClassLoader.getSystemClassLoader());
+            componentScanAnnotationParserChangeClass(classLoader);
         } catch (Exception e) {
             System.err.println("componentScanAnnotationParser替换失败");
         }
 
         try {
-            mySqlConfigChangeClass(ClassLoader.getSystemClassLoader());
+            mySqlConfigChangeClass(classLoader);
         } catch (Exception e) {
             System.err.println("ConnectionImpl替换失败");
         }
 
+        try {
+            adddMethodMonitor(classLoader);
+        } catch (Exception e) {
+            System.out.println("添加监控异常");
+        }
 
+    }
+
+    private static void adddMethodMonitor(ClassLoader classLoader) throws IOException {
+        String path = "com.gaoxiang.performance.injection.StatDataServiceImpl";
+        //todo  获取指定范围内所有的文件路径
+        ClassReader cr = new ClassReader(path);
+        ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_MAXS);
+        ClassVisitor cv = new MethodAddMonitorClassAdapter.AddMonitorClassAdapter(cw);
+        cr.accept(cv, Opcodes.ASM6);
     }
 
     private static void mySqlChangeClassChange(ClassLoader classLoader) throws ClassNotFoundException, UnmodifiableClassException, IOException {
@@ -133,7 +152,6 @@ public class BootClass {
         }
 
     }
-
 
     public static ClassLoader commonClassLoader;
 
