@@ -1,7 +1,10 @@
 package com.xin.monitor;
 
+import com.xin.monitor.tree.TreeNode;
 import com.xin.vo.TreeVo;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Stack;
 
 /**
@@ -12,12 +15,16 @@ import java.util.Stack;
 public class Monitor {
 
     static ThreadLocal<Stack<String>> stack = new ThreadLocal<>();
+    static List<TreeNode>             tree  = new ArrayList<>();
+
 
     public static void start() {
         if (stack.get() == null) {
             stack.set(new Stack<>());
         }
+
         stack.get().push(System.currentTimeMillis() + "&$##$&" + Thread.currentThread().getStackTrace().length);
+        tree.add(new TreeNode(Thread.currentThread().getStackTrace().length, Thread.currentThread().getStackTrace().length - 1));
     }
 
     public static void end(String paramClassNames) {
@@ -34,7 +41,11 @@ public class Monitor {
         vo.setTimeConsuming(runTime);
         System.out.println(vo.toString());
 
+        for (int i = 0; i < tree.size(); i++) {
+            if (tree.get(i).getNodeId() == Thread.currentThread().getStackTrace().length) {
+                tree.get(i).setVo(vo);
+            }
+        }
 
-        //todo 将数据放入一个树形对象中
     }
 }
