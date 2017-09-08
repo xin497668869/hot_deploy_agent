@@ -11,6 +11,8 @@ import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -25,6 +27,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
+
+import static org.springframework.core.io.support.ResourcePatternResolver.CLASSPATH_ALL_URL_PREFIX;
+import static org.springframework.util.ClassUtils.convertClassNameToResourcePath;
 
 public class BootClass {
     public static Instrumentation inst;
@@ -128,8 +133,6 @@ public class BootClass {
             inst.redefineClasses(classDefinition);
         }
         System.out.println("monitor 替换类完毕");
-        //todo  获取指定范围内所有的文件路径
-
     }
 
     private static void mySqlChangeClassChange(ClassLoader classLoader) throws ClassNotFoundException, UnmodifiableClassException, IOException {

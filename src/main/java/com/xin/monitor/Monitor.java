@@ -24,6 +24,7 @@ public class Monitor {
         }
 
         stack.get().push(System.currentTimeMillis() + "&$##$&" + Thread.currentThread().getStackTrace().length);
+        //每次进入方法就将构造树节点并放到list中
         tree.add(new TreeNode(Thread.currentThread().getStackTrace().length, Thread.currentThread().getStackTrace().length - 1));
     }
 
@@ -40,7 +41,7 @@ public class Monitor {
         vo.setParamClassNames(paramClassNames);
         vo.setTimeConsuming(runTime);
         System.out.println(vo.toString());
-
+        //跳出节点之前先查看list中看是对应哪个方法,将耗时TreeVo更新到list中
         for (int i = 0; i < tree.size(); i++) {
             if (tree.get(i).getNodeId() == Thread.currentThread().getStackTrace().length) {
                 tree.get(i).setVo(vo);
